@@ -3,6 +3,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using Elastic.Clients.Elasticsearch;
+using MongoDB.Bson;
+using MongoDB.Bson.IO;
+using MongoDB.Driver;
+using Neo4j.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 // builder.Services.AddAuthentication("Bearer") // схема аутентификации - с помощью jwt-токенов
@@ -31,6 +35,10 @@ if (string.IsNullOrEmpty(esUri))
     throw new InvalidOperationException("Elasticsearch configuration is missing or invalid.");
 }
 
+// MongoDB
+var mongoSettings = builder.Configuration.GetSection("MongoDbSettings");
+var mongoClient = new MongoClient(mongoSettings["ConnectionString"]);
+var mongoDatabase = mongoClient.GetDatabase(mongoSettings["Database"]);
 #endregion
 
 
@@ -50,6 +58,8 @@ var esSettings = new ElasticsearchClientSettings(new Uri(esUri))
     .DefaultIndex("materials"); // optional
 builder.Services.AddSingleton(new ElasticsearchClient(esSettings));
 
+// MongoDB
+builder.Services.AddSingleton<IMongoDatabase>(mongoDatabase);
 #endregion
 
 var app = builder.Build();
@@ -95,5 +105,23 @@ app.MapGet("/elastic_test", async (ElasticsearchClient esClient) =>
 
     // Возвращаем сырые JSON-данные
     return Results.Ok(response.Documents);
+});
+
+app.MapGet("/mongo_test", async (IMongoDatabase db) =>
+{
+    try 
+    {
+        var collection = db.GetCollection<BsonDocument>("universities");
+        var documents = await collection.Find(new BsonDocument()).ToListAsync();
+        
+        // Преобразование BSON в JSON-строку
+        var jsonResult = documents.ToJson(new JsonWriterSettings { Indent = true });
+        
+        return Results.Text(jsonResult, "application/json");
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Ошибка: {ex.Message}");
+    }
 });
 app.Run();

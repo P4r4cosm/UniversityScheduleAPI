@@ -23,28 +23,27 @@ string connectionString = builder.Configuration.GetConnectionString("DefaultConn
 
 //redis
 string redisConf = builder.Configuration["RedisOptions:Configuration"];
-if (string.IsNullOrEmpty(redisConf))
-{
-    throw new InvalidOperationException("Redis configuration is missing or invalid.");
-}
 
 // Elasticsearch
 string esUri = builder.Configuration["ElasticsearchOptions:Uri"];
-if (string.IsNullOrEmpty(esUri))
-{
-    throw new InvalidOperationException("Elasticsearch configuration is missing or invalid.");
-}
+
 
 // MongoDB
 var mongoSettings = builder.Configuration.GetSection("MongoDbSettings");
 var mongoClient = new MongoClient(mongoSettings["ConnectionString"]);
 var mongoDatabase = mongoClient.GetDatabase(mongoSettings["Database"]);
+
+//Neo4j
+var neo4jOptions = builder.Configuration.GetSection("Neo4jOptions");
+var neo4jUri = neo4jOptions["Uri"];
+var neo4jUsername = neo4jOptions["Username"];
+var neo4jPassword = neo4jOptions["Password"];
+
 #endregion
 
 
-
-
 #region databaseConnections
+
 // Создание соединения с Redis
 
 var redis = ConnectionMultiplexer.Connect(redisConf);
@@ -60,6 +59,11 @@ builder.Services.AddSingleton(new ElasticsearchClient(esSettings));
 
 // MongoDB
 builder.Services.AddSingleton<IMongoDatabase>(mongoDatabase);
+
+// Neo4j
+var neo4jDriver = GraphDatabase.Driver(neo4jUri, AuthTokens.Basic(neo4jUsername, neo4jPassword));
+builder.Services.AddSingleton<IDriver>(neo4jDriver);
+
 #endregion
 
 var app = builder.Build();
@@ -76,6 +80,8 @@ app.UseHttpsRedirection();
 
 app.MapGet("/generate", () => "OK")
     .WithName("Status");
+
+
 app.MapGet("/users_from_pg", (ApplicationContext db) => db.Users.ToList());
 
 app.MapGet("/redis_test", async () =>
@@ -109,15 +115,39 @@ app.MapGet("/elastic_test", async (ElasticsearchClient esClient) =>
 
 app.MapGet("/mongo_test", async (IMongoDatabase db) =>
 {
-    try 
+    try
     {
         var collection = db.GetCollection<BsonDocument>("universities");
         var documents = await collection.Find(new BsonDocument()).ToListAsync();
-        
+
         // Преобразование BSON в JSON-строку
         var jsonResult = documents.ToJson(new JsonWriterSettings { Indent = true });
-        
+
         return Results.Text(jsonResult, "application/json");
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Ошибка: {ex.Message}");
+    }
+});
+
+app.MapGet("/neo4j_nodes", async (IDriver driver) =>
+{
+    await using var session = driver.AsyncSession();
+    try 
+    {
+        var result = await session.RunAsync("MATCH (n) RETURN n LIMIT 25");
+        var records = await result.ToListAsync();
+
+        // Преобразование в список словарей для корректной сериализации [[1]][[10]]
+        var nodes = records.Select(record => 
+            record["n"].As<INode>().Properties.ToDictionary(
+                p => p.Key, 
+                p => p.Value?.ToString() ?? "null" // Обработка null [[3]]
+            )
+        ).ToList();
+
+        return Results.Json(nodes); // Явное указание JSON [[4]]
     }
     catch (Exception ex)
     {

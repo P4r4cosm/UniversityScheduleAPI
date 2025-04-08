@@ -9,9 +9,8 @@ using MongoDB.Driver;
 using Neo4j.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
-// builder.Services.AddAuthentication("Bearer") // схема аутентификации - с помощью jwt-токенов
-//     .AddJwtBearer();
-// builder.Services.AddAuthorization();
+builder.Services.AddAuthentication("Bearer").AddJwtBearer(); // схема аутентификации - с помощью jwt-токенов.
+builder.Services.AddAuthorization();
 builder.Services.AddOpenApi();
 
 #region configurationDatabase
@@ -131,7 +130,7 @@ app.MapGet("/mongo_test", async (IMongoDatabase db) =>
     }
 });
 
-app.MapGet("/neo4j_nodes", async (IDriver driver) =>
+app.MapGet("/neo4j_test", async (IDriver driver) =>
 {
     await using var session = driver.AsyncSession();
     try 

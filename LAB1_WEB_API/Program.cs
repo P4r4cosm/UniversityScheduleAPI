@@ -2,13 +2,15 @@ using LAB1_WEB_API;
 using LAB1_WEB_API.Endpoints;
 using LAB1_WEB_API.Repositories;
 using LAB1_WEB_API.Services;
+using Microsoft.AspNetCore.CookiePolicy;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddAuthentication("Bearer").AddJwtBearer(); // схема аутентификации - с помощью jwt-токенов.
-builder.Services.AddAuthorization();
+
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JwtOptions"));
 //добавляем базы
 builder.Services.AddPostgres(builder.Configuration);
@@ -22,6 +24,8 @@ builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 builder.Services.AddScoped<UserServices>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 
+builder.Services.AddApiAuthentication(builder.Configuration.GetSection("JwtOptions")); // схема аутентификации - с помощью jwt-токенов.
+builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Включаем middleware для Swagger
@@ -42,16 +46,17 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCookiePolicy(new CookiePolicyOptions()
+{
+    MinimumSameSitePolicy = SameSiteMode.Strict,
+    Secure = CookieSecurePolicy.Always,
+    HttpOnly = HttpOnlyPolicy.Always
+});
+
 //регистрируем эндпоинты login register
 app.MapUserEndpoint();
 
-
-var group = app.MapGroup("/api/v1");
-group
-    .MapPostgresEndpoints()
-    .MapRedisEndpoints()
-    .MapElasticSearchEndpoints()
-    .MapNeo4jEndpoints()
-    .MapMongoEndpoints()
-    .MapOpenApi();
+//регистрируем все базы данных
+var group = app.MapGroup("/api/v1").RequireAuthorization();
+group.AddDataBaseEndPoints();
 app.Run();

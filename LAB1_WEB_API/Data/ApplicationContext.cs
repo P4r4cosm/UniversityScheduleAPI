@@ -1,3 +1,4 @@
+using LAB1_WEB_API.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace LAB1_WEB_API;
@@ -13,8 +14,11 @@ public class ApplicationContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<User>().HasData(
-            new User { Id = 1, Name = "admin" }
-        );
+        base.OnModelCreating(modelBuilder);
+        // Настройка уникального индекса для Username
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Name)
+            .IsUnique();
+       
     }
 }

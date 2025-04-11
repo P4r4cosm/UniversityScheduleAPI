@@ -4,9 +4,9 @@ using LAB1_WEB_API.Services;
 
 namespace LAB1_WEB_API.Endpoints;
 
-public static class UserEndpoint
+public static class UserEndpoints
 {
-    public static IEndpointRouteBuilder MapUserEndpoint(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapUserEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapPost("register", Register);
         app.MapPost("login", Login);

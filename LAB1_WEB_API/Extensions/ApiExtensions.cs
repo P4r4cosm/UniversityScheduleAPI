@@ -19,6 +19,10 @@ public static class ApiExtensions
             .MapNeo4jEndpoints();
     }
 
+    public static void AddGeneratorEndPoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGeneratorEndpoints();
+    }
     public static void AddApiAuthentication(this IServiceCollection services, IConfigurationSection jwtSection)
     {
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

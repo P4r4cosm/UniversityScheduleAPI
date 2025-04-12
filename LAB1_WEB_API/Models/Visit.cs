@@ -12,5 +12,5 @@ public class Visit
     public int ScheduleId { get; set; }
     public Schedule Schedule { get; set; }
     
-    public DateTime visitTime { get; set; }
+    public DateTime VisitTime { get; set; }
 }

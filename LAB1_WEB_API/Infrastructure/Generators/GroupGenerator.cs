@@ -3,12 +3,6 @@ using LAB1_WEB_API.Interfaces.Generator;
 
 namespace LAB1_WEB_API.Services.Generators;
 
-public record GroupGenerationResult(
-    string GroupName,
-    int DepartmentId, // ID кафедры, к которой относится группа
-    DateTime StartDate, // Дата начала обучения (обычно 1 сентября)
-    DateTime EndDate // Дата окончания обучения (например, 30 июня через 4 года)
-);
 public class GroupGenerator: IDataGenerator
 {
     private readonly Faker _faker;
@@ -46,7 +40,7 @@ public class GroupGenerator: IDataGenerator
     }
 
     // Метод для генерации данных Группы
-    public GroupGenerationResult GenerateGroupData()
+    public Group GenerateGroupData()
     {
         // 1. Выбираем случайную кафедру из списка
         var selectedDepartment = _faker.PickRandom(_departments);
@@ -71,12 +65,12 @@ public class GroupGenerator: IDataGenerator
         int departmentId = selectedDepartment.Id;
 
         // 6. Возвращаем результат
-        return new GroupGenerationResult(groupName, departmentId, startDate, endDate);
+        return new Group(){Name = groupName, Department = selectedDepartment, StartYear = startDate, EndYear = endDate};
     }
 
     public string Generate()
     {
         var group = GenerateGroupData();
-        return $"{group.GroupName}, {group.DepartmentId}, {group.StartDate}, {group.EndDate}";
+        return $"{group.Name}, {group.DepartmentId}, {group.StartYear}, {group.EndYear}";
     }
 }

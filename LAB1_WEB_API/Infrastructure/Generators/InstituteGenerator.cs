@@ -3,10 +3,6 @@ using LAB1_WEB_API.Interfaces.Generator;
 
 namespace LAB1_WEB_API.Services.Generators;
 
-public record InstituteGenerationResult(
-    string InstituteName,
-    int UniversityId // Соответствует Institute.Id_univercity
-);
 
 // Генератор Институтов, адаптированный под ваши классы
 public class InstituteGenerator: IDataGenerator
@@ -74,7 +70,7 @@ public class InstituteGenerator: IDataGenerator
         }
     }
     // Метод для генерации данных Института
-    public InstituteGenerationResult GenerateInstituteData()
+    public Institute GenerateInstituteData()
     {
         // 1. Выбираем случайный университет из списка
         var selectedUniversity = _faker.PickRandom(_universities);
@@ -83,13 +79,13 @@ public class InstituteGenerator: IDataGenerator
         string instituteName = GenerateDiverseInstituteName(selectedUniversity);
 
         // 3. Возвращаем результат с названием и ID университета
-        return new InstituteGenerationResult(instituteName, selectedUniversity.Id);
+        return new Institute(){Name = instituteName, University = selectedUniversity};
     }
 
     public string Generate()
     {
         var res = GenerateInstituteData();
-        return $"{res.UniversityId} {res.InstituteName}";
+        return $"{res.UniversityId} {res.Name}";
     }
     // Вспомогательный метод для генерации разнообразных названий
     private string GenerateDiverseInstituteName(University university)

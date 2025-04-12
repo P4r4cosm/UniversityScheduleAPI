@@ -1,103 +1,151 @@
+// Структура для возвращаемого значения генератором Студента
+
+using System.ComponentModel.DataAnnotations.Schema;
+using LAB1_WEB_API;
 using Bogus;
 using Bogus.DataSets;
 using LAB1_WEB_API.Interfaces.Generator;
 
-namespace LAB1_WEB_API.Services.Generators;
+public record StudentGenerationResult(
+    string FullName,
+    DateTime DateOfRecipient, // Дата зачисления/начала обучения в группе
+    int GroupId           // ID группы, к которой относится студент
+);
 
-public class StudentGenerator : IDataGenerator
+// Генератор Студентов
+public class StudentGenerator: IDataGenerator
 {
-    private  readonly Faker faker;
+    private readonly Faker _faker;
+    private readonly List<Group> _groups; // Храним список доступных групп
 
-    public StudentGenerator(Faker Faker)
+    // Конструктор принимает Faker и КОЛЛЕКЦИЮ Групп
+    public StudentGenerator(Faker faker, IEnumerable<Group> groups)
     {
-        faker = Faker;
+        _faker = faker ?? throw new ArgumentNullException(nameof(faker));
+        _groups = groups?.ToList() ?? throw new ArgumentNullException(nameof(groups));
+
+        if (!_groups.Any())
+        {
+            throw new ArgumentException("Список групп не может быть пустым.", nameof(groups));
+        }
     }
-    // Генерирует мужское отчество
-    public string GenerateMalePatronymic(string fatherFirstName = null)
+
+    // --- Логика генерации ФИО (вспомогательные методы) ---
+    private string GenerateMalePatronymic(string fatherFirstName = null)
     {
         if (string.IsNullOrEmpty(fatherFirstName))
         {
-            fatherFirstName = faker.Name.FirstName(Name.Gender.Male);
+            fatherFirstName = _faker.Name.FirstName(Name.Gender.Male);
         }
 
-        // Простое правило для суффикса (можно усложнить для большей точности)
-        if (fatherFirstName.EndsWith("й") || fatherFirstName.EndsWith("ь"))
-        {
-            return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "евич";
+        // Правила остаются те же
+        if (fatherFirstName.EndsWith("й") || fatherFirstName.EndsWith("ь")) {
+             // Исключения для -ий/-ь -> евич
+             if (fatherFirstName.EndsWith("ий"))
+                return fatherFirstName.Substring(0, fatherFirstName.Length - 2) + "ьевич"; // Валерий -> Валерьевич
+              return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "евич"; // Игорь -> Игоревич
         }
         else if (fatherFirstName.EndsWith("а") || fatherFirstName.EndsWith("я"))
         {
-             // Имена типа Лука, Илья -> Ильич, Лукич. Никита -> Никитич
-             // Для имен типа Фома -> Фомич
-             // Это упрощенное правило может быть неточным для некоторых имен.
-            if (fatherFirstName.EndsWith("а") && fatherFirstName.Length > 2 && "гкхчшщ".Contains(fatherFirstName[fatherFirstName.Length-2])) {
-                 return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "ич"; // Лука -> Лукич? (проверить) - Кажется правило сложнее. Оставим упрощенно.
-            }
+             if (fatherFirstName.EndsWith("а") && fatherFirstName.Length > 2 && "гкхчшщ".Contains(fatherFirstName[fatherFirstName.Length-2])) {
+                 return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "ич"; // Лука -> Лукич
+             }
              if (fatherFirstName == "Илья") return "Ильич";
              if (fatherFirstName == "Никита") return "Никитич";
-              // Добавим базовые случаи для -а/-я
+             if (fatherFirstName == "Фома") return "Фомич";
+             if (fatherFirstName == "Кузьма") return "Кузьмич";
+             // Общий случай для остальных -а/-я -> -ич
              if (fatherFirstName.EndsWith("а") || fatherFirstName.EndsWith("я"))
-                return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "ич";
+                 return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "ич"; // Савва -> Саввич? (спорно, но как упрощение)
 
-            return fatherFirstName + "ович"; // Общий случай
+            // Если дошли сюда, это не стандартное -а/-я имя для -ич, используем -ович (маловероятно)
+             return fatherFirstName + "ович";
         }
         else
         {
-            return fatherFirstName + "ович";
+             // Проверка на гласную перед последней согласной для -евич/-ович
+            if (fatherFirstName.Length > 1 && "аеёиоуыэюя".Contains(char.ToLower(fatherFirstName[fatherFirstName.Length - 2]))) {
+                // Если гласная перед согласной, но не "й/ь" (например, Лев, Павел?) - сложный случай. Оставим -ович как базовый.
+                 // return fatherFirstName + "евич"; // Нужно больше правил
+            }
+            return fatherFirstName + "ович"; // Иван -> Иванович, Петр -> Петрович
         }
     }
 
-    // Генерирует женское отчество
-    public string GenerateFemalePatronymic(string fatherFirstName = null)
+    private string GenerateFemalePatronymic(string fatherFirstName = null)
     {
         if (string.IsNullOrEmpty(fatherFirstName))
         {
-            fatherFirstName = faker.Name.FirstName(Name.Gender.Male);
+            fatherFirstName = _faker.Name.FirstName(Name.Gender.Male);
         }
 
-        // Простое правило для суффикса (можно усложнить)
-         if (fatherFirstName.EndsWith("й") || fatherFirstName.EndsWith("ь"))
+        // Правила остаются те же
+        if (fatherFirstName.EndsWith("й") || fatherFirstName.EndsWith("ь"))
         {
-            return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "евна";
+             if (fatherFirstName.EndsWith("ий"))
+                 return fatherFirstName.Substring(0, fatherFirstName.Length - 2) + "ьевна"; // Валерий -> Валерьевна
+            return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "евна"; // Игорь -> Игоревна
         }
         else if (fatherFirstName.EndsWith("а") || fatherFirstName.EndsWith("я"))
         {
-             // Илья -> Ильинична, Лука -> Лукинична, Никита -> Никитична
-             // Фома -> Фоминична
+             // Илья -> Ильинична, Никита -> Никитична, Фома -> Фоминична, Кузьма -> Кузьминична
              if (fatherFirstName == "Илья") return "Ильинична";
              if (fatherFirstName == "Никита") return "Никитична";
-              // Добавим базовые случаи для -а/-я
-             if (fatherFirstName.EndsWith("а") || fatherFirstName.EndsWith("я"))
-                 return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "ична";
+             if (fatherFirstName == "Фома") return "Фоминична";
+             if (fatherFirstName == "Кузьма") return "Кузьминична";
 
-            return fatherFirstName + "овна"; // Общий случай
+            // Для имен на -а/-я с шипящим/г/к/х -> -ична
+            if (fatherFirstName.EndsWith("а") && fatherFirstName.Length > 2 && "гкхчшщ".Contains(fatherFirstName[fatherFirstName.Length-2])) {
+                 return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "ична"; // Лука -> Лукична
+            }
+
+             // Общий случай для остальных -а/-я -> -ична
+             if (fatherFirstName.EndsWith("а") || fatherFirstName.EndsWith("я"))
+                 return fatherFirstName.Substring(0, fatherFirstName.Length - 1) + "ична"; // Савва -> Саввична?
+
+            // Если дошли сюда, используем -овна
+            return fatherFirstName + "овна";
         }
         else
         {
-            return fatherFirstName + "овна";
+             // Как и в мужском, проверка на гласную перед согласной
+             // if (...) return fatherFirstName + "евна";
+             return fatherFirstName + "овна"; // Иван -> Ивановна, Петр -> Петровна
         }
+    }
+
+    // --- Основной метод генерации данных Студента ---
+    public Student GenerateStudentData()
+    {
+        // 1. Выбираем случайную группу из списка
+        var selectedGroup = _faker.PickRandom(_groups);
+
+        // 2. Генерируем ФИО
+        var gender = _faker.PickRandom<Name.Gender>();
+        string fatherFirstName = _faker.Name.FirstName(Name.Gender.Male);
+        string firstName = _faker.Name.FirstName(gender);
+        string lastName = _faker.Name.LastName(gender);
+        string patronymic = (gender == Name.Gender.Male)
+            ? GenerateMalePatronymic(fatherFirstName)
+            : GenerateFemalePatronymic(fatherFirstName);
+        string fullName = $"{firstName} {patronymic} {lastName}";
+
+        // 3. Определяем дату зачисления (DateOfRecipient)
+        // Логично предположить, что это дата начала обучения группы
+        DateTime dateOfRecipient = selectedGroup.StartYear;
+        // Альтернатива: случайная дата вскоре после начала обучения
+        // DateTime dateOfRecipient = _faker.Date.Between(selectedGroup.StartYear, selectedGroup.StartYear.AddMonths(1));
+
+        // 4. Получаем ID выбранной группы
+        int groupId = selectedGroup.Id;
+
+        // 5. Возвращаем результат
+        return new Student(){FullName = fullName, Group = selectedGroup, DateOfRecipient = dateOfRecipient};
     }
 
     public string Generate()
     {
-        // 1. Случайно определяем пол для текущего человека
-        var gender = faker.PickRandom<Name.Gender>(); // Выбираем Male или Female
-        // 2. Генерируем случайное мужское имя (для имени отца)
-        string fatherFirstName = faker.Name.FirstName(Name.Gender.Male);
-        // 3. Генерируем части имени в зависимости от выбранного пола
-        string firstName = faker.Name.FirstName(gender);
-        string lastName = faker.Name.LastName(gender); // Bogus учтет окончание фамилии для женщин
-        string patronymic;
-        if (gender == Name.Gender.Male)
-        {
-            patronymic = GenerateMalePatronymic(fatherFirstName);
-        }
-        else // Name.Gender.Female
-        {
-            patronymic = GenerateFemalePatronymic(fatherFirstName);
-        }
-        // 4. Собираем полное ФИО
-        string fullName = $"{firstName} {patronymic} {lastName}";
-        return fullName;
+        var student = GenerateStudentData();
+        return $"{student.FullName} {student.DateOfRecipient} {student.IdGroup}";
     }
 }

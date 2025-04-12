@@ -3,10 +3,6 @@ using LAB1_WEB_API.Interfaces.Generator;
 
 namespace LAB1_WEB_API.Services.Generators;
 
-public record DepartmentGenerationResult(
-        string DepartmentName, // Название сгенерированной кафедры
-        int InstituteId       // ID института, к которому она относится
-    );
 
 // Генератор Кафедр (Departments)
     public class DepartmentGenerator: IDataGenerator
@@ -67,7 +63,7 @@ public record DepartmentGenerationResult(
         }
 
         // Метод для генерации данных Кафедры (сам выбирает институт)
-        public DepartmentGenerationResult GenerateDepartmentData()
+        public Department GenerateDepartmentData()
         {
             // 1. Выбираем случайный институт из списка
             var selectedInstitute = _faker.PickRandom(_institutes);
@@ -106,12 +102,12 @@ public record DepartmentGenerationResult(
             int instituteId = selectedInstitute.Id;
 
             // 4. Возвращаем результат
-            return new DepartmentGenerationResult(departmentName, instituteId);
+            return new Department(){Name = departmentName, Institute = selectedInstitute};
         }
 
         public string Generate()
         {
             var res = GenerateDepartmentData();
-            return $"{res.InstituteId} {res.DepartmentName}";
+            return $"{res.InstituteId} {res.Name}";
         }
     }

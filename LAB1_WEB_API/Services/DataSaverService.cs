@@ -10,22 +10,12 @@ namespace LAB1_WEB_API.Services;
 public class DataSaverService
 {
     private readonly GeneratorService _generator;
-    // private readonly PostgresDataSaver _pgSaver;
-    // private readonly ElasticDataSaver _elasticSaver;
-    // private readonly RedisDataSaver _redisSaver;
-    // private readonly MongoDataSaver _mongoSaver;
-    // private readonly Neo4jDataSaver _neo4jSaver;
     private readonly ILogger<DataSaverService> _logger;
     private readonly IEnumerable<IDataSaver<GeneratedData>> _dataSavers;
 
     public DataSaverService(IEnumerable<IDataSaver<GeneratedData>> savers, ILogger<DataSaverService> logger, GeneratorService generator)
     {
         _generator = generator;
-        // _pgSaver = pgSaver;
-        // _elasticSaver = elasticSaver;
-        // _redisSaver = redisSaver;
-        // _mongoSaver = mongoSaver;
-        // _neo4jSaver = neo4jSaver;
         _logger = logger;
         _dataSavers = savers;
     }
@@ -35,53 +25,23 @@ public class DataSaverService
         var sbReport = new StringBuilder("Generation and Saving Report:\n");
         try
         {
-            // _logger.LogInformation("Starting data generation...");
-             var generatedData = _generator.GenerateForPostgres();
-            // _logger.LogInformation("Data generation complete.");
-            // sbReport.AppendLine("- Data generated successfully.");
-            //
-            // _logger.LogInformation("Starting data saving sequence...");
-            //
-            // // 1. Save to PostgreSQL (Updates IDs in generatedData automatically)
-            // var pgResult = await _pgSaver.SaveAsync(generatedData);
-            // LogAndAppendResult(sbReport, "PostgreSQL", pgResult);
-            // if (!pgResult.Success)
-            //     throw pgResult.Error ?? new Exception("PostgreSQL save failed."); // Или другая логика обработки ошибок
-            //
-            // //Generate For Elastic
-            // _logger.LogInformation("Starting data generation for elastic...");
+           
+            var generatedData = _generator.GenerateForPostgres();
+            
+            //сначала сохраняем в postgres, чтобы не было проблем с id при генерации текстов
+            //после во все остальные базы 
+            var pgSaver = _dataSavers.OfType<PostgresDataSaver>().FirstOrDefault();
+            if (pgSaver == null) throw new InvalidOperationException("PostgresDataSaver not found.");
+            
+            var pgResult=await pgSaver.SaveAsync(generatedData);
             generatedData = _generator.GenerateDataForElastic(generatedData);
-            foreach (var saver in _dataSavers)
+            
+            var otherSavers = _dataSavers.Where(s => s != pgSaver); // Исключаем уже выполненный pgSaver
+            foreach (var saver in otherSavers)
             {
                 await saver.SaveAsync(generatedData);
             }
-            // _logger.LogInformation("Elastic Data generation complete.");
-            // sbReport.AppendLine("-Elastic Data generated successfully.");
-            //     
-            // // 2. Save to Elasticsearch
-            // var esResult = await _elasticSaver.SaveAsync(generatedData);
-            // LogAndAppendResult(sbReport, "Elasticsearch", esResult);
-            // if (!esResult.Success)
-            //     throw esResult.Error ??
-            //           new Exception("Elasticsearch save failed."); // Или другая логика обработки ошибок
-            //
-            // // 3. Save to Redis
-            // var redisResult = await _redisSaver.SaveAsync(generatedData);
-            // LogAndAppendResult(sbReport, "Redis", redisResult);
-            // if (!redisResult.Success) throw redisResult.Error ?? new Exception("Redis save failed.");
-            //
-            // // 4. Save to MongoDB
-            // var mongoResult = await _mongoSaver.SaveAsync(generatedData);
-            // LogAndAppendResult(sbReport, "Mongo", mongoResult);
-            // if (!mongoResult.Success) throw mongoResult.Error ?? new Exception("Mongo save failed.");
-            //
-            // // 5. Save to Neo4j
-            // var neo4jResult = await _neo4jSaver.SaveAsync(generatedData);
-            // LogAndAppendResult(sbReport, "Neo4j", neo4jResult);
-            // if (!neo4jResult.Success) throw neo4jResult.Error ?? new Exception("Neo4j save failed.");
-            //
-            // _logger.LogInformation("Data saving finished.");
-            // sbReport.AppendLine("\nFinished successfully."); // Если все шаги успешны
+            
         }
         catch (Exception ex)
         {

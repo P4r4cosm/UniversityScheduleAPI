@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Bogus;
+using LAB1_WEB_API;
 using LAB1_WEB_API.Interfaces.Generator;
 
 
 // Генератор специальностей бакалавриата
-public class SpecialtyGenerator: IDataGenerator
+public class SpecialtyGenerator
 {
     private readonly Faker _faker;
 
@@ -263,7 +264,7 @@ public class SpecialtyGenerator: IDataGenerator
         _faker = faker;
     }
 
-    public string Generate()
+    public Speciality GenerateSpecialty()
     {
         // 1. Выбрать случайную пару (Код УГС, Название)
         var (ugnsCode, specialtyName) = _faker.PickRandom(_specialties);
@@ -280,6 +281,6 @@ public class SpecialtyGenerator: IDataGenerator
         string finalName = specialtyName;
         
         //надо распарсить значение на выходе
-        return $"{fullCode} {finalName}";
+        return new Speciality(){Name = finalName, code = fullCode};
     }
 }

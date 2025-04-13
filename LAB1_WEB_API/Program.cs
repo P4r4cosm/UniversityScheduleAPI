@@ -1,12 +1,16 @@
 using Bogus;
 using LAB1_WEB_API;
 using LAB1_WEB_API.Endpoints;
+using LAB1_WEB_API.Infrastructure.Generators.Data;
+using LAB1_WEB_API.Interfaces.DataSaver;
 using LAB1_WEB_API.Repositories;
 using LAB1_WEB_API.Services;
+using LAB1_WEB_API.Services.DataSavers;
 using Microsoft.AspNetCore.CookiePolicy;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
+builder.Logging.AddConsole();
 // Swagger/OpenAPI
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
@@ -24,9 +28,16 @@ services.AddScoped<UserRepository>();
 services.AddScoped<IJwtProvider, JwtProvider>();
 services.AddScoped<UserServices>();
 services.AddScoped<IPasswordHasher, PasswordHasher>();
-
 //создаём сервис для генерации мусора
 services.AddScoped<GeneratorService>();
+services.AddScoped<IDataSaver<GeneratedData>, PostgresDataSaver>();
+services.AddScoped<IDataSaver<GeneratedData>, Neo4jDataSaver>();
+services.AddScoped<IDataSaver<GeneratedData>, MongoDataSaver>();
+services.AddScoped<IDataSaver<GeneratedData>, RedisDataSaver>();
+services.AddScoped<IDataSaver<GeneratedData>, ElasticDataSaver>();
+//сервис сохранения мусора
+services.AddScoped<DataSaverService>();
+
 
 services.AddApiAuthentication(builder.Configuration.GetSection("JwtOptions")); // схема аутентификации - с помощью jwt-токенов.
 services.AddAuthorization();

@@ -67,7 +67,7 @@ namespace LAB1_WEB_API.Services.Generators;
         {
             // 1. Выбираем случайный институт из списка
             var selectedInstitute = _faker.PickRandom(_institutes);
-
+            
             // 2. Генерируем название кафедры
             string departmentName;
             string baseStem = _faker.PickRandom(SubjectStemsGenitive);

@@ -146,6 +146,6 @@ public class StudentGenerator: IDataGenerator
     public string Generate()
     {
         var student = GenerateStudentData();
-        return $"{student.FullName} {student.DateOfRecipient} {student.IdGroup}";
+        return $"{student.FullName} {student.DateOfRecipient} {student.GroupId}";
     }
 }

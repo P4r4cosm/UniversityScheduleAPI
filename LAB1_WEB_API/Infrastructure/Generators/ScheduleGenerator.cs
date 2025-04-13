@@ -145,15 +145,15 @@ public class ScheduleGenerator
                     $"Не удалось найти будний день в диапазоне {finalStartDate.ToShortDateString()} - {finalEndDate.AddDays(-1).ToShortDateString()} за {maxAttempts} попыток.");
             }
 
-            // Генерируем дату в финальном диапазоне
             DateTime baseDate = _faker.Date.Between(finalStartDate, finalEndDate);
-            // Время (8:00 - 16:30)
             int hour = _faker.Random.Int(8, 16);
             int minute = _faker.PickRandom(0, 30);
-            startTime = new DateTime(baseDate.Year, baseDate.Month, baseDate.Day, hour, minute, 0);
+
+            // !!! ИСПРАВЛЕНИЕ: Добавляем DateTimeKind.Utc !!!
+            startTime = new DateTime(baseDate.Year, baseDate.Month, baseDate.Day, hour, minute, 0, DateTimeKind.Utc);
         } while (startTime.DayOfWeek == DayOfWeek.Saturday || startTime.DayOfWeek == DayOfWeek.Sunday);
 
-        // Время окончания
+// Время окончания автоматически получит Kind = Utc от startTime
         DateTime endTime = startTime.AddMinutes(90);
 
         // 6. Создаем объект Schedule
@@ -198,7 +198,6 @@ public class ScheduleGenerator
             {
                 // Пытаемся сгенерировать запись, используя основной метод, который проверит Term
                 var scheduleEntry = Generate(group, randomLecture, minDate, maxDate);
-                // TODO: Добавить проверку на конфликты времени с уже добавленными записями в schedules, если нужно
                 schedules.Add(scheduleEntry);
             }
             catch (ArgumentException ex)
@@ -252,7 +251,6 @@ public class ScheduleGenerator
             try
             {
                 var scheduleEntry = Generate(randomGroup, randomLecture, minDate, maxDate);
-                // TODO: Проверка конфликтов (группа/время, аудитория/время и т.д., если нужно)
                 schedules.Add(scheduleEntry);
             }
             catch (ArgumentException ex)

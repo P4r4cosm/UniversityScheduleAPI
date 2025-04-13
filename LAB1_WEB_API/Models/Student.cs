@@ -12,6 +12,6 @@ public class Student
     [Column(TypeName = "date")] // Указываем тип DATE
     public DateTime DateOfRecipient { get; set; }
     
-    public int IdGroup { get; set; }
+    public int GroupId { get; set; }
     public Group Group { get; set; }
 }

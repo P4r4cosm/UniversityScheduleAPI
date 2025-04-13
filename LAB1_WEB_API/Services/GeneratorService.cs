@@ -1,7 +1,9 @@
 using System.Text;
 using Bogus;
 using Elastic.Clients.Elasticsearch;
+using LAB1_WEB_API.Infrastructure.Generators.Data;
 using LAB1_WEB_API.Services.Generators;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 using Neo4j.Driver;
 using StackExchange.Redis;
@@ -10,107 +12,136 @@ namespace LAB1_WEB_API.Services;
 
 public class GeneratorService
 {
-    Faker faker;
-    private ApplicationContext dbContext;
-    private IMongoDatabase mongoDatabase;
-    private ElasticsearchClient esClient;
-    private IDatabase redis;
-    private IDriver neo4j;
-    
-    public GeneratorService(ApplicationContext dbContext, ElasticsearchClient esClient, IMongoDatabase mongoDatabase,
-        IDatabase redis, IDriver neo4j)
+    private readonly Faker _faker;
+
+
+    private readonly ILogger<GeneratorService> _logger;
+
+    public GeneratorService(
+        ILogger<GeneratorService> logger)
     {
-        faker=new Faker("ru");
+        _logger = logger;
+        _faker = new Faker("ru");
     }
 
-    public string Generate()
+    public GeneratedData GenerateForPostgres()
     {
-        var specialityGenerator = new SpecialtyGenerator(faker);
+        _logger.LogInformation("Starting data generation (in memory)...");
+
+        var specialityGenerator = new SpecialtyGenerator(_faker);
+        // --- Генерация данных (без сохранения) ---
+        _logger.LogDebug("Generating Specialties...");
         var Specialties = new List<Speciality>();
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 300; i++)
         {
-            var speciality= specialityGenerator.Generate();
-            Specialties.Add(new Speciality(){Name = speciality});
+            var speciality = specialityGenerator.GenerateSpecialty();
+            Specialties.Add(speciality);
         }
-        
-        var universityGenerator = new UniversityNameGenerator(faker);
+
+
+        _logger.LogDebug("Generating Universities...");
+        var universityGenerator = new UniversityNameGenerator(_faker);
         var Universities = new List<University>();
         for (int i = 0; i < 3; i++)
         {
-            var university= universityGenerator.Generate();
-            Universities.Add(new University(){Id=i+1,Name=university});
+            var university = universityGenerator.Generate();
+            Universities.Add(new University() { Name = university });
         }
-        var instituteGenerator = new InstituteGenerator(faker, Universities);
+
+        _logger.LogDebug("Generating Institutes...");
+        var instituteGenerator = new InstituteGenerator(_faker, Universities);
         var Institutes = new List<Institute>();
         for (int i = 0; i < 30; i++)
         {
-            var institute= instituteGenerator.Generate();
-            Institutes.Add(new Institute{Id=i+1,Name=institute});
+            var institute = instituteGenerator.GenerateInstituteData();
+            Institutes.Add(institute);
         }
+
+        _logger.LogDebug("Generating Departments...");
         //генерируем департаменты
-        var departmentgenerator = new DepartmentGenerator(faker,Institutes);
+        var departmentgenerator = new DepartmentGenerator(_faker, Institutes);
         var Departments = new List<Department>();
         for (int i = 0; i < 300; i++)
         {
-            var department= departmentgenerator.Generate();
-            Departments.Add(new Department(){Name=department});
+            var department = departmentgenerator.GenerateDepartmentData();
+            Departments.Add(department);
         }
-        
-        
+
+        _logger.LogDebug("Generating Groups...");
         //генерируем группы
-        var groupGenerator = new GroupGenerator(faker, Departments);
+        var groupGenerator = new GroupGenerator(_faker, Departments);
         var Groups = new List<Group>();
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 100; i++)
         {
             var group = groupGenerator.GenerateGroupData();
             Groups.Add(group);
         }
+
+        _logger.LogDebug("Generating Students...");
         //генерим студентов
-        var studentGenerator = new StudentGenerator(faker, Groups);
+        var studentGenerator = new StudentGenerator(_faker, Groups);
         var Students = new List<Student>();
-        for (int i = 0; i < 30000; i++)
+        for (int i = 0; i < 1000; i++)
         {
-            var student= studentGenerator.Generate();
-            Students.Add(new Student(){FullName=student});
+            var student = studentGenerator.GenerateStudentData();
+            Students.Add(student);
         }
-        
-        var courcesGenerator = new CourseGenerator(faker, Departments,Specialties);
+
+        _logger.LogDebug("Generating Courses...");
+        var courcesGenerator = new CourseGenerator(_faker, Departments, Specialties);
         var courses = new List<Course>();
         for (int i = 0; i < 100; i++)
         {
             var course = courcesGenerator.GenerateCourse();
             courses.Add(course);
         }
-        
-        var lectureGenerator = new LectureGenerator(faker);
+
+        _logger.LogDebug("Generating Lectures...");
+        var lectureGenerator = new LectureGenerator(_faker);
         List<Lecture> Lectures = new List<Lecture>();
         foreach (var course in courses)
         {
-            var lectureForCourse=lectureGenerator.GenerateLecturesForCourse(course);
+            var lectureForCourse = lectureGenerator.GenerateLecturesForCourse(course);
             Lectures.AddRange(lectureForCourse);
         }
-        
-        var materialGenerator = new MaterialGenerator(faker);
+
+        _logger.LogDebug("Generating Materials...");
+        var materialGenerator = new MaterialGenerator(_faker);
         var materials = new List<Material>();
         foreach (var lecture in Lectures)
         {
-            var materialsForLecture=materialGenerator.GenerateMaterialsForLecture(lecture);
+            var materialsForLecture = materialGenerator.GenerateMaterialsForLecture(lecture);
             materials.AddRange(materialsForLecture);
         }
-        var scheduleGenerator = new ScheduleGenerator(faker);
-        var schedules = scheduleGenerator.Generate(Groups,Lectures,100);
-        
-        var visitGenerator = new VisitGenerator(faker);
-        var visits = visitGenerator.Generate(Students,schedules);
-        
 
-        //генерируем материлы для эластика
-        var materialElasticGenerator = new MaterialElasticGenerator(faker);
-        var materialElasticsList = materialElasticGenerator.Generate(materials);
-        
-        
-        
-        
-        return "Ok";
+        _logger.LogDebug("Generating Schedules...");
+        var scheduleGenerator = new ScheduleGenerator(_faker);
+        var schedules = scheduleGenerator.Generate(Groups, Lectures, 100);
+
+        _logger.LogDebug("Generating Visits...");
+        var visitGenerator = new VisitGenerator(_faker);
+        var visits = visitGenerator.Generate(Students, schedules);
+        var generatedData = new GeneratedData()
+        {
+            Visits = visits,
+            Institutes = Institutes,
+            Departments = Departments,
+            Groups = Groups,
+            Students = Students,
+            Lectures = Lectures,
+            Materials = materials,
+            Schedules = schedules,
+            Courses = courses,
+            Specialities = Specialties,
+            Universities = Universities,
+        };
+        return generatedData;
+    }
+
+    public GeneratedData GenerateDataForElastic(GeneratedData generatedData)
+    {
+        var elasticGenerator = new MaterialElasticGenerator(_faker);
+        generatedData.MaterialElastics = elasticGenerator.Generate(generatedData.Materials);
+        return generatedData;
     }
 }

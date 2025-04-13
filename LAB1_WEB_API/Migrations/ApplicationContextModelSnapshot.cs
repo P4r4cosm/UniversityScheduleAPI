@@ -243,9 +243,6 @@ namespace LAB1_WEB_API.Migrations
                     b.Property<int>("GroupId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("IdGroup")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("GroupId");
@@ -308,7 +305,7 @@ namespace LAB1_WEB_API.Migrations
                     b.Property<int>("StudentId")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime>("visitTime")
+                    b.Property<DateTime>("VisitTime")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");

@@ -7,13 +7,13 @@ public static class GeneratorEndpoints
 {
     public static IEndpointRouteBuilder MapGeneratorEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("generate", Generate);
+        app.MapPost("generate", GenerateAndSaveData);
         return app;
     }
 
-    public static async Task<IResult> Generate(GeneratorService generatorService)
+    public static async Task<IResult> GenerateAndSaveData(DataSaverService dataSaverService)
     {
-        var res = generatorService.Generate();
-        return Results.Ok(res);
+        await dataSaverService.GenerateAndSaveDataAsync();
+        return Results.Ok();
     }
 }

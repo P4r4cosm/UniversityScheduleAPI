@@ -1,7 +1,10 @@
 using Neo4j.Driver;
 using University_Schedule_Generator.Infrastructure.Generators.Data;
 using University_Schedule_Generator.Interfaces.DataSaver;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
+using Microsoft.Extensions.Logging; // Убедитесь, что используете Microsoft.Extensions.Logging
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace University_Schedule_Generator.Services.DataSavers;
 
@@ -18,114 +21,141 @@ public class Neo4jDataSaver : IDataSaver<GeneratedData>
 
     public async Task<SaveResult> SaveAsync(GeneratedData data)
     {
-        _logger.LogInformation("Saving graph data to Neo4j...");
-        await using var
-            session = _neo4j.AsyncSession(o =>
-                o.WithDatabase("neo4j")); // Используем using для автоматического закрытия сессии
+        _logger.LogInformation("Saving structural graph data (IDs and relationships including direct Student-Lecture) to Neo4j...");
+        await using var session = _neo4j.AsyncSession(o => o.WithDatabase("neo4j"));
 
-        //Очистка графа перед вставкой (ОСТОРОЖНО!) - раскомментируйте, если нужно
-        _logger.LogWarning("Detaching and deleting all nodes and relationships in Neo4j...");
-        await session.ExecuteWriteAsync(async tx => { await tx.RunAsync("MATCH (n) DETACH DELETE n"); });
-        _logger.LogInformation("Neo4j graph cleared.");
-
-
-        // Создание узлов
-        await session.ExecuteWriteAsync(async tx =>
+        try
         {
-            _logger.LogDebug("Creating Neo4j Nodes...");
-            if (data.Lectures.Any())
-            {
-                var lecturesParams = data.Lectures.Select(l => new Dictionary<string, object>
-                    { { "id", l.Id }, { "name", l.Name }, { "req", l.Requirments } }).ToList();
-                // *** ИСПРАВЛЕННАЯ СТРОКА ЗДЕСЬ ***
-                await tx.RunAsync("UNWIND $batch AS props MERGE (n:Lecture {id: props.id}) SET n += props",
-                    new { batch = lecturesParams });
-            }
+            // Очистка графа (если нужно)
+            // ... (код очистки) ...
 
-            if (data.Groups.Any())
+            // 1. Создание/обновление узлов ТОЛЬКО с ID
+            await session.ExecuteWriteAsync(async tx =>
             {
-                // Эта часть была уже правильной
-                var groupsParams = data.Groups.Select(g => new Dictionary<string, object>
+                _logger.LogDebug("Merging Neo4j Nodes (ID only)...");
+                if (data.Lectures?.Any() ?? false)
                 {
-                    { "id", g.Id }, { "name", g.Name }, { "start", g.StartYear.ToString("yyyy-MM-dd") },
-                    { "end", g.EndYear.ToString("yyyy-MM-dd") }
-                }).ToList();
-                await tx.RunAsync("UNWIND $batch AS props MERGE (g:Group {id: props.id}) SET g += props",
-                    new { batch = groupsParams });
-            }
-
-            if (data.Students.Any())
-            {
-                // Эта часть была уже правильной
-                var studentsParams = data.Students.Select(s => new Dictionary<string, object>
-                        { { "id", s.Id }, { "fio", s.FullName }, { "dor", s.DateOfRecipient.ToString("yyyy-MM-dd") } })
-                    .ToList();
-                await tx.RunAsync("UNWIND $batch AS props MERGE (s:Student {id: props.id}) SET s += props",
-                    new { batch = studentsParams });
-            }
-
-            _logger.LogDebug("Neo4j Nodes created/merged.");
-        });
-
-        // Создание связей HAS_LECTURE
-        await session.ExecuteWriteAsync(async tx =>
-        {
-            _logger.LogDebug("Creating Neo4j HAS_LECTURE relationships...");
-            if (data.Schedules.Any())
-            {
-                var scheduleParams = data.Schedules.Select(sch => new Dictionary<string, object>
+                    var lecturesParams = data.Lectures.Select(l => new { id = l.Id }).ToList();
+                    await tx.RunAsync("UNWIND $batch AS props MERGE (:Lecture {id: props.id})", new { batch = lecturesParams });
+                }
+                if (data.Groups?.Any() ?? false)
                 {
-                    { "groupId", sch.GroupId }, { "lectureId", sch.LectureId },
-                    { "start", sch.StartTime.ToString("o") }, { "end", sch.EndTime.ToString("o") }
-                }).ToList();
-                // Используем MERGE для связи, чтобы избежать дубликатов, если запускать повторно (хотя свойства перезапишутся)
-                await tx.RunAsync(@"
-                         UNWIND $batch AS props
-                         MATCH (g:Group {id: props.groupId})
-                         MATCH (l:Lecture {id: props.lectureId})
-                         MERGE (g)-[r:HAS_LECTURE]->(l)
-                         SET r.startTime = props.start, r.endTime = props.end",
-                    new { batch = scheduleParams });
-                _logger.LogDebug("Neo4j HAS_LECTURE relationships created/merged.");
-            }
-        });
+                    var groupsParams = data.Groups.Select(g => new { id = g.Id }).ToList();
+                    await tx.RunAsync("UNWIND $batch AS props MERGE (:Group {id: props.id})", new { batch = groupsParams });
+                }
+                if (data.Students?.Any() ?? false)
+                {
+                    var studentsParams = data.Students.Select(s => new { id = s.Id }).ToList();
+                    await tx.RunAsync("UNWIND $batch AS props MERGE (:Student {id: props.id})", new { batch = studentsParams });
+                }
+                _logger.LogDebug("Neo4j Nodes merged (ID only).");
+            });
 
-        // Создание связей ATTENDED
-        await session.ExecuteWriteAsync(async tx =>
-        {
-            _logger.LogDebug("Creating Neo4j ATTENDED relationships...");
-            if (data.Visits.Any())
+            // 2. Создание связей Группа -> Лекция (HAS_LECTURE)
+            await session.ExecuteWriteAsync(async tx =>
             {
-                var scheduleLectureMap = data.Schedules.ToDictionary(s => s.Id, s => s.LectureId);
-                var visitParams = data.Visits
-                    .Where(v => scheduleLectureMap.ContainsKey(v.ScheduleId))
-                    .Select(v => new Dictionary<string, object>
+                _logger.LogDebug("Merging Neo4j HAS_LECTURE relationships...");
+                if (data.Schedules?.Any() ?? false)
+                {
+                    var scheduleParams = data.Schedules
+                        .Select(sch => new { groupId = sch.GroupId, lectureId = sch.LectureId })
+                        .Distinct()
+                        .ToList();
+                    if (scheduleParams.Any())
                     {
-                        { "studentId", v.StudentId }, { "lectureId", scheduleLectureMap[v.ScheduleId] },
-                        { "visitTime", v.VisitTime.ToString("o") }
-                    }).ToList();
+                        await tx.RunAsync(@"
+                            UNWIND $batch AS props
+                            MATCH (g:Group {id: props.groupId})
+                            MATCH (l:Lecture {id: props.lectureId})
+                            MERGE (g)-[:HAS_LECTURE]->(l)",
+                            new { batch = scheduleParams });
+                        _logger.LogDebug("Neo4j HAS_LECTURE relationships merged.");
+                    }
+                }
+                 else { _logger.LogInformation("No schedule data, skipping HAS_LECTURE."); }
+            });
 
-                if (visitParams.Any())
+            // 3. Создание связей Студент -> Группа (BELONGS_TO)
+            await session.ExecuteWriteAsync(async tx =>
+            {
+                _logger.LogDebug("Merging Neo4j BELONGS_TO relationships...");
+                if (data.Students?.Any(s => s.GroupId > 0) ?? false)
                 {
-                    // Здесь используем CREATE, т.к. каждое посещение уникально по времени
-                    await tx.RunAsync(@"
-                             UNWIND $batch AS props
-                             MATCH (s:Student {id: props.studentId})
-                             MATCH (l:Lecture {id: props.lectureId})
-                             CREATE (s)-[:ATTENDED {visitTime: props.visitTime}]->(l)",
-                        new { batch = visitParams });
-                    _logger.LogDebug("Neo4j ATTENDED relationships created.");
+                    var studentGroupParams = data.Students
+                        .Where(s => s.GroupId > 0)
+                        .Select(s => new { studentId = s.Id, groupId = s.GroupId })
+                        .Distinct()
+                        .ToList();
+                    if (studentGroupParams.Any())
+                    {
+                        await tx.RunAsync(@"
+                            UNWIND $batch AS props
+                            MATCH (s:Student {id: props.studentId})
+                            MATCH (g:Group {id: props.groupId})
+                            MERGE (s)-[:BELONGS_TO]->(g)",
+                            new { batch = studentGroupParams });
+                        _logger.LogDebug("Neo4j BELONGS_TO relationships merged.");
+                    }
+                }
+                 else { _logger.LogInformation("No student data with GroupId, skipping BELONGS_TO."); }
+            });
+
+            // 4. Создание прямых связей Студент -> Лекция (CAN_ATTEND)
+            // Эта связь выводится из существующих данных: Студент принадлежит Группе, Группе назначена Лекция.
+            await session.ExecuteWriteAsync(async tx =>
+            {
+                _logger.LogDebug("Merging direct Neo4j CAN_ATTEND relationships (Student -> Lecture)...");
+
+                // Проверяем, есть ли вообще студенты с группами и расписание
+                if ((data.Students?.Any(s => s.GroupId > 0) ?? false) && (data.Schedules?.Any() ?? false))
+                {
+                    // Шаг 4.1: Создаем удобную структуру для поиска лекций по группе
+                    var groupToLectureIdsMap = data.Schedules
+                        .GroupBy(s => s.GroupId)
+                        .ToDictionary(g => g.Key, g => g.Select(s => s.LectureId).Distinct().ToList());
+
+                    // Шаг 4.2: Генерируем параметры для связи Student-Lecture
+                    var canAttendParams = data.Students
+                        // Берем студентов с валидной группой, для которой есть лекции в карте
+                        .Where(s => s.GroupId > 0 && groupToLectureIdsMap.ContainsKey(s.GroupId))
+                        // Для каждого такого студента, берем все лекции его группы
+                        .SelectMany(s => groupToLectureIdsMap[s.GroupId]
+                            // И создаем пару (StudentId, LectureId)
+                            .Select(lectureId => new { studentId = s.Id, lectureId = lectureId }))
+                        .Distinct() // Убираем дубликаты пар (StudentId, LectureId)
+                        .ToList();
+
+                    // Шаг 4.3: Создаем связи в Neo4j
+                    if (canAttendParams.Any())
+                    {
+                        await tx.RunAsync(@"
+                            UNWIND $batch AS props
+                            MATCH (s:Student {id: props.studentId})
+                            MATCH (l:Lecture {id: props.lectureId})
+                            MERGE (s)-[:CAN_ATTEND]->(l)", // Новая прямая связь
+                            new { batch = canAttendParams });
+                        _logger.LogDebug("Neo4j CAN_ATTEND relationships merged.");
+                    }
+                    else
+                    {
+                         _logger.LogDebug("No Student-Lecture pairs derived for CAN_ATTEND relationship.");
+                    }
                 }
                 else
                 {
-                    _logger.LogWarning("No valid visits found to create ATTENDED relationships.");
+                     _logger.LogInformation("Insufficient data (Students with groups or Schedules) to create CAN_ATTEND relationships.");
                 }
-            }
-        });
+            });
 
-        _logger.LogInformation("Neo4j Graph data saved.");
 
-        _logger.LogInformation("Data saving finished successfully.");
-        return new SaveResult(true, "Neo4j Graph data saved.");
+            _logger.LogInformation("Neo4j structural graph data (IDs and relationships including direct Student-Lecture) saved successfully.");
+            return new SaveResult(true, "Neo4j structural data (IDs and relationships including direct Student-Lecture) saved.");
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save structural data to Neo4j.");
+            return new SaveResult(false, $"Failed to save to Neo4j: {ex.Message}");
+        }
     }
 }

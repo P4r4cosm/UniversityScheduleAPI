@@ -10,6 +10,6 @@ namespace University_Schedule_Generator.Contracts.Generator
         [DefaultValue(300)] public int DepartmentCount { get; set; }
         [DefaultValue(100)] public int GroupCount { get; set; }
         [DefaultValue(1000)] public int StudentCount { get; set; }
-        [DefaultValue(20)] public int CourseCount { get; set; }
+        [DefaultValue(50)] public int CourseCount { get; set; }
     }
 }

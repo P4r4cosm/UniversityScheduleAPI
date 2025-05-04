@@ -117,14 +117,32 @@ public class GeneratorService
 
         _logger.LogDebug("Generating Schedules...");
         var scheduleGenerator = new ScheduleGenerator(_faker);
-        var schedules = scheduleGenerator.Generate(Groups, Lectures, Lectures.Count*5);
+        var schedules = scheduleGenerator.Generate(Groups, Lectures, Lectures.Count*10);
 
         _logger.LogDebug("Generating Visits...");
         var visitGenerator = new VisitGenerator(_faker);
-        var visits = visitGenerator.Generate(Students, schedules);
+        var allGeneratedVisits = new List<Visit>(); // Собираем сюда все корректные посещения
+        foreach (var group in Groups) // Или итерируйте по уникальным GroupId
+        {
+            // 1. Отфильтровать студентов ТОЛЬКО этой группы
+            var studentsInThisGroup = Students.Where(s => s.Group == group).ToList();
+
+            // 2. Отфильтровать расписание ТОЛЬКО для этой группы
+            var scheduleForThisGroup = schedules.Where(sch => sch.Group== group).ToList();
+
+            // 3. Генерировать посещения ТОЛЬКО для этой группы и ЕЕ расписания
+            if (studentsInThisGroup.Any() && scheduleForThisGroup.Any())
+            {
+                var visitsForThisGroup = visitGenerator.Generate(
+                    studentsInThisGroup,
+                    scheduleForThisGroup
+                );
+                allGeneratedVisits.AddRange(visitsForThisGroup);
+            }
+        }
         var generatedData = new GeneratedData()
         {
-            Visits = visits,
+            Visits = allGeneratedVisits,
             Institutes = Institutes,
             Departments = Departments,
             Groups = Groups,

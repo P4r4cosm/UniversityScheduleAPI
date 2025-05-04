@@ -1,9 +1,9 @@
-using LAB1_WEB_API.Infrastructure.Generators.Data;
-using LAB1_WEB_API.Interfaces.DataSaver;
 using Neo4j.Driver;
+using University_Schedule_Generator.Infrastructure.Generators.Data;
+using University_Schedule_Generator.Interfaces.DataSaver;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace LAB1_WEB_API.Services.DataSavers;
+namespace University_Schedule_Generator.Services.DataSavers;
 
 public class Neo4jDataSaver : IDataSaver<GeneratedData>
 {

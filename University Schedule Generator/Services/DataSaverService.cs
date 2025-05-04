@@ -1,9 +1,9 @@
 using System.Text;
-using LAB1_WEB_API.Infrastructure.Generators.Data;
-using LAB1_WEB_API.Interfaces.DataSaver;
-using LAB1_WEB_API.Services.DataSavers;
+using University_Schedule_Generator.Infrastructure.Generators.Data;
+using University_Schedule_Generator.Interfaces.DataSaver;
+using University_Schedule_Generator.Services.DataSavers;
 
-namespace LAB1_WEB_API.Services;
+namespace University_Schedule_Generator.Services;
 
 public class DataSaverService
 {
@@ -46,6 +46,8 @@ public class DataSaverService
             {
                 await saver.SaveAsync(generatedData);
             }
+
+            sbReport.AppendLine("Generation and Saving complete");
         }
         catch (Exception ex)
         {

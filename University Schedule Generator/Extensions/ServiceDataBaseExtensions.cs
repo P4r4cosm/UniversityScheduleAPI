@@ -4,7 +4,7 @@ using MongoDB.Driver;
 using Neo4j.Driver;
 using StackExchange.Redis;
 
-namespace LAB1_WEB_API;
+namespace University_Schedule_Generator;
 
 public static class ServiceDataBaseExtensions
 {

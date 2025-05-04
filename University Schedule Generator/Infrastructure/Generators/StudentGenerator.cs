@@ -1,10 +1,10 @@
 // Структура для возвращаемого значения генератором Студента
 
 using System.ComponentModel.DataAnnotations.Schema;
-using LAB1_WEB_API;
+using University_Schedule_Generator;
 using Bogus;
 using Bogus.DataSets;
-using LAB1_WEB_API.Interfaces.Generator;
+using University_Schedule_Generator.Interfaces.Generator;
 
 public record StudentGenerationResult(
     string FullName,

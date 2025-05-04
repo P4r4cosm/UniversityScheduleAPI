@@ -1,7 +1,7 @@
 using Bogus;
-using LAB1_WEB_API.Interfaces.Generator;
+using University_Schedule_Generator.Interfaces.Generator;
 
-namespace LAB1_WEB_API.Services.Generators;
+namespace University_Schedule_Generator.Services.Generators;
 
 public class UniversityNameGenerator: IDataGenerator
 {

@@ -2,7 +2,7 @@
 
 using System.Globalization;
 using Bogus;
-using LAB1_WEB_API;
+using University_Schedule_Generator;
 
 public class ScheduleGenerator
 {

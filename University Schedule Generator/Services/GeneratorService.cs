@@ -1,20 +1,19 @@
 using System.Text;
 using Bogus;
 using Elastic.Clients.Elasticsearch;
-using LAB1_WEB_API.Infrastructure.Generators.Data;
-using LAB1_WEB_API.Services.Generators;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 using Neo4j.Driver;
 using StackExchange.Redis;
+using University_Schedule_Generator.Infrastructure.Generators.Data;
+using University_Schedule_Generator.Services.Generators;
 
-namespace LAB1_WEB_API.Services;
+namespace University_Schedule_Generator.Services;
 
 public class GeneratorService
 {
     private readonly Faker _faker;
-
-
+    
     private readonly ILogger<GeneratorService> _logger;
 
     public GeneratorService(
@@ -118,7 +117,7 @@ public class GeneratorService
 
         _logger.LogDebug("Generating Schedules...");
         var scheduleGenerator = new ScheduleGenerator(_faker);
-        var schedules = scheduleGenerator.Generate(Groups, Lectures, 100);
+        var schedules = scheduleGenerator.Generate(Groups, Lectures, Lectures.Count*5);
 
         _logger.LogDebug("Generating Visits...");
         var visitGenerator = new VisitGenerator(_faker);

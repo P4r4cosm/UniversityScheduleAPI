@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace LAB1_WEB_API
+namespace University_Schedule_Generator
 {
     public class VisitGenerator
     {

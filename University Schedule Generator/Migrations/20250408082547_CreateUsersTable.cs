@@ -3,7 +3,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace LAB1_WEB_API.Migrations
+namespace University_Schedule_Generator.Migrations
 {
     /// <inheritdoc />
     public partial class CreateUsersTable : Migration

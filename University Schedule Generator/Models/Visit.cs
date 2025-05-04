@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace LAB1_WEB_API;
+namespace University_Schedule_Generator;
 
 public class Visit
 {

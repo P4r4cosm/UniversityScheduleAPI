@@ -1,11 +1,11 @@
 using System.Text;
-using LAB1_WEB_API.Endpoints;
-using LAB1_WEB_API.Services;
+using University_Schedule_Generator.Endpoints;
+using University_Schedule_Generator.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace LAB1_WEB_API;
+namespace University_Schedule_Generator;
 
 public static class ApiExtensions
 {

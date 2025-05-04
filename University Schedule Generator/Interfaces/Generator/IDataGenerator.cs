@@ -1,4 +1,4 @@
-namespace LAB1_WEB_API.Interfaces.Generator;
+namespace University_Schedule_Generator.Interfaces.Generator;
 
 public interface IDataGenerator
 {

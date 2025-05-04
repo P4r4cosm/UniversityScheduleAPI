@@ -1,17 +1,16 @@
 using Bogus;
-using LAB1_WEB_API;
-using LAB1_WEB_API.Endpoints;
-using LAB1_WEB_API.Infrastructure.Generators.Data;
-using LAB1_WEB_API.Interfaces.DataSaver;
-using LAB1_WEB_API.Services;
-using LAB1_WEB_API.Services.DataSavers;
+using University_Schedule_Generator;
+using University_Schedule_Generator.Infrastructure.Generators.Data;
+using University_Schedule_Generator.Interfaces.DataSaver;
+using University_Schedule_Generator.Services;
+using University_Schedule_Generator.Services.DataSavers;
 using Microsoft.AspNetCore.CookiePolicy;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var services = builder.Services;
 // *** 1. Добавьте сервисы CORS ***
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins"; // Имя для политики
-builder.Services.AddCors(options =>
+services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
         policy =>
@@ -23,11 +22,11 @@ builder.Services.AddCors(options =>
 
         });
 });
-var services = builder.Services;
+
 builder.Logging.AddConsole();
 // Swagger/OpenAPI
 services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "GeneratorService API", Version = "v1" });
 });
@@ -60,11 +59,6 @@ app.UseSwaggerUI(options =>
     options.RoutePrefix = ""; // Доступ по /
 });
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
 app.UseCookiePolicy(new CookiePolicyOptions()
 {
     MinimumSameSitePolicy = SameSiteMode.Strict,

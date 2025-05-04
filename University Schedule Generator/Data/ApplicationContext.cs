@@ -1,7 +1,7 @@
-using LAB1_WEB_API.Services;
+using University_Schedule_Generator.Services;
 using Microsoft.EntityFrameworkCore;
 
-namespace LAB1_WEB_API;
+namespace University_Schedule_Generator;
 
 public class ApplicationContext : DbContext
 {

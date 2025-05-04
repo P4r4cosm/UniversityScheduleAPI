@@ -1,6 +1,6 @@
 using Bogus;
 
-namespace LAB1_WEB_API.Services.Generators;
+namespace University_Schedule_Generator.Services.Generators;
 
 public class LectureGenerator
 {

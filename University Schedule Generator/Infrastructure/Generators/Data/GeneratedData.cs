@@ -1,4 +1,4 @@
-namespace LAB1_WEB_API.Infrastructure.Generators.Data;
+namespace University_Schedule_Generator.Infrastructure.Generators.Data;
 
 public class GeneratedData
 {

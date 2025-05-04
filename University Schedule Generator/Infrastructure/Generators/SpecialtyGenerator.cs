@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Bogus;
-using LAB1_WEB_API;
-using LAB1_WEB_API.Interfaces.Generator;
+using University_Schedule_Generator;
+using University_Schedule_Generator.Interfaces.Generator;
 
 
 // Генератор специальностей бакалавриата

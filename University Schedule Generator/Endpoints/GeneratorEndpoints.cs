@@ -1,7 +1,7 @@
-using LAB1_WEB_API.Contracts.Generator;
-using LAB1_WEB_API.Services;
+using University_Schedule_Generator.Contracts.Generator;
+using University_Schedule_Generator.Services;
 
-namespace LAB1_WEB_API.Endpoints;
+namespace University_Schedule_Generator.Endpoints;
 
 public static class GeneratorEndpoints
 {

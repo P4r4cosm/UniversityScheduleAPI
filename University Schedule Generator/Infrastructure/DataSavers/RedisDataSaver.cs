@@ -1,8 +1,8 @@
-using LAB1_WEB_API.Infrastructure.Generators.Data;
-using LAB1_WEB_API.Interfaces.DataSaver;
 using StackExchange.Redis;
+using University_Schedule_Generator.Infrastructure.Generators.Data;
+using University_Schedule_Generator.Interfaces.DataSaver;
 
-namespace LAB1_WEB_API.Services.DataSavers;
+namespace University_Schedule_Generator.Services.DataSavers;
 
 public class RedisDataSaver : IDataSaver<GeneratedData>
 {

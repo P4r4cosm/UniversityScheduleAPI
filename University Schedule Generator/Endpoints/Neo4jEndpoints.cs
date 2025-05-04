@@ -1,6 +1,6 @@
 using Neo4j.Driver;
 
-namespace LAB1_WEB_API.Endpoints;
+namespace University_Schedule_Generator.Endpoints;
 
 public static class Neo4jEndpoints
 {

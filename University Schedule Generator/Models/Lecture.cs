@@ -8,8 +8,10 @@ public class Lecture
     
     [Required]public string Name {get; set;}
     
-    public bool Requirments {get; set;}
+    public bool Requirements  {get; set;}
     
-    public int CourceId {get; set;}
+    [Range(1900, 2100, ErrorMessage = "Год должен быть в диапазоне от 1900 до 2100")] //  валидация
+    public int Year {get; set;}
+    public int CourseId {get; set;}
     public Course Course {get; set;}
 }

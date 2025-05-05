@@ -15,5 +15,6 @@ public class Course
     public int SpecialityId { get; set; }
     public Speciality Speciality { get; set; }
 
+    // Учебный год/период в формате "ГГГГ-ГГГГ"
     [Required]public string Term{get; set;}
 }

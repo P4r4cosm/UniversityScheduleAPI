@@ -30,9 +30,9 @@ namespace University_Schedule_Generator
         public List<Visit> Generate(
             List<Student> studentsInGroup,
             List<Schedule> groupSchedule,
-            float presenceProbability = 0.40f, // 40% шанс присутствия по умолчанию
+            float presenceProbability = 0.60f, // 60% шанс присутствия по умолчанию
             int minArrivalOffsetMinutes = 0,  // Может прийти за 0 минут до начала
-            int maxArrivalOffsetMinutes = 20)   // Может опоздать на 20 минут
+            int maxArrivalOffsetMinutes = 40)   // Может опоздать на 40 минут
         {
             if (studentsInGroup == null) throw new ArgumentNullException(nameof(studentsInGroup));
             if (groupSchedule == null) throw new ArgumentNullException(nameof(groupSchedule));
@@ -120,9 +120,9 @@ namespace University_Schedule_Generator
          public List<Visit> Generate(
             Student student,
             List<Schedule> groupSchedule,
-            float presenceProbability = 0.4f,
+            float presenceProbability = 0.6f,
             int minArrivalOffsetMinutes = 0,
-            int maxArrivalOffsetMinutes = 20)
+            int maxArrivalOffsetMinutes = 40)
          {
              if (student == null) throw new ArgumentNullException(nameof(student));
              // Вызываем основной метод, передав список из одного студента
